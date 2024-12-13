@@ -2,7 +2,11 @@ import { Hono } from "hono";
 import { PrismaClient } from "@prisma/client/edge";
 import { withAccelerate } from "@prisma/extension-accelerate";
 import { sign, decode, verify } from "hono/jwt";
-import { createBlogInput, CreateBlogInput, updateBlogInput } from "@sniperxyz/medium-common";
+import {
+  createBlogInput,
+  CreateBlogInput,
+  updateBlogInput,
+} from "@sniperxyz/medium-common";
 
 export const postRouter = new Hono<{
   Bindings: {
@@ -34,10 +38,10 @@ postRouter.use("/*", async (c, next) => {
 postRouter.post("/", async (c) => {
   const body = await c.req.json();
   const success = createBlogInput.safeParse(body);
-    if(!success){
-        c.status(400)
-        return c.json({error: "Invalid request body"})
-    }
+  if (!success) {
+    c.status(400);
+    return c.json({ error: "Invalid request body" });
+  }
   const authorId = c.get("userId");
   const prisma = new PrismaClient({
     datasourceUrl: c.env.DATABASE_URL,
@@ -58,10 +62,10 @@ postRouter.post("/", async (c) => {
 postRouter.put("/", async (c) => {
   const body = await c.req.json();
   const success = updateBlogInput.safeParse(body);
-    if(!success){
-        c.status(400)
-        return c.json({error: "Invalid request body"})
-    }
+  if (!success) {
+    c.status(400);
+    return c.json({ error: "Invalid request body" });
+  }
   const prisma = new PrismaClient({
     datasourceUrl: c.env.DATABASE_URL,
   }).$extends(withAccelerate());
@@ -85,7 +89,19 @@ postRouter.get("/bulk", async (c) => {
   }).$extends(withAccelerate());
 
   try {
-    const posts = await prisma.post.findMany();
+    const posts = await prisma.post.findMany({
+      select: {
+        content: true,
+        title: true,
+        id: true,
+        author: {
+          select: {
+            name: true,
+          },
+        },
+        postDate: true,
+      },
+    });
     return c.json({ posts });
   } catch (e) {
     c.status(404);
@@ -102,6 +118,17 @@ postRouter.get("/:id", async (c) => {
     const post = await prisma.post.findFirst({
       where: {
         id: id,
+      },
+      select: {
+        id: true,
+        title: true,
+        content: true,
+        author: {
+          select: {
+            name: true,
+          },
+        },
+        postDate: true,
       },
     });
 

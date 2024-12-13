@@ -1,13 +1,34 @@
 import { ChangeEvent, useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate} from "react-router-dom";
 import { SignupInput } from "@sniperxyz/medium-common";
+import axios from "axios";
+import { BACKEND_URL } from "../config";
+import { useName } from "../hooks";
 
 export const Auth = ({ type }: { type: "signup" | "signin" }) => {
+  const navigate = useNavigate();
+  const {setName} = useName()
   const [postInput, setPostInput] = useState<SignupInput>({
     name: "",
     username: "",
     password: "",
   });
+
+async function sendRequest(){
+  try{
+    const response = await axios.post(`${BACKEND_URL}/api/v1/user/${type=="signup"? "signup" : "signin"}`,postInput, {
+      headers: {
+        "Content-Type": "application/json",
+      }
+    });
+    const jwt = response.data;
+    localStorage.setItem("token", jwt);
+    navigate("/blogs")
+  } catch(error){
+    console.error("Error",error);
+  }
+}
+
   return (
     <div>
       <div className="h-screen flex justify-center items-center flex-col">
@@ -16,23 +37,30 @@ export const Auth = ({ type }: { type: "signup" | "signin" }) => {
             Create an account
           </div>
           <div className="text-slate-400 text-center">
-            Already have an account?
-            <Link to={"/signin"} className="px-2 underline text-sky-500">
-              Login
+            {type == "signin"
+              ? "Don't have an account"
+              : "Already have an account?"}
+            <Link
+              to={type == "signin" ? "/signup" : "/signin"}
+              className="px-2 underline text-sky-500"
+            >
+              {type == "signin" ? "Sign up" : "Sign In"}
             </Link>
           </div>
 
           <div className="mt-4 flex flex-col gap-2">
-            <InputForm
-              lable="Name"
-              placeholder="Enter your name ..."
-              onChange={(e) => {
-                setPostInput({
-                  ...postInput,
-                  name: e.target.value,
-                });
-              }}
-            />
+            {type == "signup" ? (
+              <InputForm
+                lable="Name"
+                placeholder="Enter your name ..."
+                onChange={(e) => {
+                  setPostInput({
+                    ...postInput,
+                    name: e.target.value,
+                  });
+                }}
+              />
+            ) : null}
             <InputForm
               lable="Username"
               placeholder="Enter your username"
@@ -41,6 +69,7 @@ export const Auth = ({ type }: { type: "signup" | "signin" }) => {
                   ...postInput,
                   username: e.target.value,
                 });
+                setName(e.target.value);
               }}
             />
 
@@ -55,7 +84,9 @@ export const Auth = ({ type }: { type: "signup" | "signin" }) => {
                 });
               }}
             />
-            <button className="bg-slate-950 text-white p-2 rounded-lg mt-4">{type === "signup" ? "Sign Up" : "Sign In"}</button>
+            <button className="bg-slate-950 text-white p-2 rounded-lg mt-4" onClick={sendRequest}>
+              {type === "signup" ? "Sign Up" : "Sign In"}
+            </button>
           </div>
         </div>
       </div>

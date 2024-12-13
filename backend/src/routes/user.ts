@@ -16,8 +16,9 @@ export const userRouter = new Hono<{
 
 userRouter.post("/signup", async (c) => {  
     const body = await c.req.json();
-
+    console.log(body);
     const success = signupInput.safeParse(body);
+    console.log(success);
     if(!success){
         c.status(400)
         return c.json({error: "Invalid request body"})
@@ -29,15 +30,19 @@ userRouter.post("/signup", async (c) => {
     try {
       const user = await prisma.user.create({
         data: {
-          email: body.email,
+          username: body.username,
           password: body.password,
+          name: body.name,
         },
       });
+      console.log(user);
     
       const token = await sign({ id: user.id }, c.env.JWT_SECRET_KEY);
+      console.log(token);
   
       return c.text(token);
     } catch (e) {
+      console.log("Something is wrong");
       c.status(403);
       return c.text("User already exists");
     }
@@ -57,7 +62,7 @@ userRouter.post("/signup", async (c) => {
     try {
       const user = await prisma.user.findUnique({
         where: {
-          email: body.email,
+          username: body.username,
           password: body.password,
         },
       });
